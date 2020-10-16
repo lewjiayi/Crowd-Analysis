@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Video files
+video/
+
+# YOLO config and weights
+YOLOv3-tiny/
