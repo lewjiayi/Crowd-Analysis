@@ -1,4 +1,6 @@
 from math import ceil, floor
+import matplotlib
+matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import datetime
@@ -6,9 +8,14 @@ import numpy as np
 import imutils
 import cv2
 import time
-from detect import detect_human
+from tracking import detect_human
 from util import rect_distance
 from config import SHOW_DETECT, DATA_PRESENT, RE_CHECK, RE_START_TIME, RE_END_TIME, SD_CHECK, SOCIAL_DISTANCE
+
+from deep_sort import nn_matching
+from deep_sort.detection import Detection
+from deep_sort.tracker import Tracker
+from deep_sort import generate_detections as gdet
 
 RGB_COLORS = {
 	"green": (0, 255, 0),
@@ -19,11 +26,11 @@ RGB_COLORS = {
 }
 
 # Read from video
-cap = cv2.VideoCapture("video/5.mp4")
+cap = cv2.VideoCapture("video/7.mp4")
 
 # Load YOLOv3-tiny weights and config
-weightsPath = "YOLOv3-tiny/yolov3-tiny.weights"
-configPath = "YOLOv3-tiny/yolov3-tiny.cfg"
+weightsPath = "YOLOv4-tiny/yolov4-tiny.weights"
+configPath = "YOLOv4-tiny/yolov4-tiny.cfg"
 
 # Load the YOLOv3-tiny pre-trained COCO dataset 
 net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
@@ -36,8 +43,15 @@ ln = net.getLayerNames()
 # Filter out the layer names we dont need for YOLO
 ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
-# Start counting time for processing speed calculation
-t0 = time.time()
+# Tracker parameters
+max_cosine_distance = 0.7
+nn_budget = None
+
+#initialize deep sort object
+model_filename = 'model_data/mars-small128.pb'
+encoder = gdet.create_box_encoder(model_filename, batch_size=1)
+metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
+tracker = Tracker(metric)
 
 # Initialize values and list needed
 frameCount = 0
@@ -49,6 +63,9 @@ restrictedEntryFrame = []
 restrictedEntryPeriod = False
 reWarningTimeout = 0
 sdWarningTimeout = 0
+
+# Start counting time for processing speed calculation
+t0 = time.time()
 
 while True:
 	(ret, frame) = cap.read()
@@ -62,7 +79,8 @@ while True:
 	frameCount += 1
 
 	# Run detection algorithm
-	humansDetected = detect_human(net, ln, frame)
+	humansDetected = detect_human(net, ln, frame, encoder, tracker)
+	humansDetected = [list(map(int, detect)) for detect in humansDetected]
 
 	violate = set()
 	if SD_CHECK:
@@ -72,7 +90,7 @@ while True:
 		if len(humansDetected) >= 2:
 			for i in range (0, len(humansDetected)):
 				for j in range (i + 1, len(humansDetected)):
-					if rect_distance(humansDetected[i][1], humansDetected[j][1]) < SOCIAL_DISTANCE:
+					if rect_distance(humansDetected[i][:4], humansDetected[j][:4]) < SOCIAL_DISTANCE:
 						# Distance between detection less than minimum social distance 
 						violate.add(i)
 						violateCount[i] += 1
@@ -87,19 +105,20 @@ while True:
 		if (currentDateTime.time() > RE_START_TIME) and (currentDateTime.time() < RE_END_TIME) :
 			if len(humansDetected) > 0:
 				RE = True
-
-	# Draw boxes for each detection green for normal, red for violation detected
-	for (i, (prob, bbox, centroid)) in enumerate(humansDetected):
-		(startX, startY, endX, endY) = bbox
+		
+	for i, human in enumerate(humansDetected):
+		[x, y, w, h, id] = human
 		if i in violate:
-			cv2.putText((frame), str(int(violateCount[i])), (startX	, startY - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["yellow"], 2)
-			cv2.rectangle(frame, (startX, startY), (endX, endY), RGB_COLORS["yellow"], 2)
+			# cv2.putText((frame), str(int(violateCount[i])), (x	, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["yellow"], 2)
+			cv2.rectangle(frame, (x, y), (w, h), RGB_COLORS["yellow"], 2)
+			cv2.putText(frame, str(id), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["yellow"], 2)
 		elif SHOW_DETECT and not RE:
-			cv2.rectangle(frame, (startX , startY), (endX, endY), RGB_COLORS["green"], 2)
+			cv2.rectangle(frame, (x , y), (w, h), RGB_COLORS["green"], 2)
+			cv2.putText(frame, str(id), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["green"], 2)
 
 		if RE:
-			cv2.rectangle(frame, (startX - 5 , startY - 5 ), (endX + 5, endY + 5), (0, 0, 255), 5)
-		
+			cv2.rectangle(frame, (x - 5 , y - 5 ), (w + 5, h + 5), (0, 0, 255), 5)
+
 	if SD_CHECK:
 		# Warning stays on screen for 10 frames
 		if (len(violate) > 0):
@@ -137,21 +156,24 @@ while True:
 	
 	# Store data violation and crowd count data for graph plotting
 	# Data store on average of every 5 frames
-	if frameCount % 5 == 0:
-		violateCountFrame.append(ceil(violatePeriodTotal / 5))
-		humanCountFrame.append(ceil(humanPeriodTotal / 5))
-		violatePeriodTotal = 0
-		humanPeriodTotal = 0
-		restrictedEntryFrame.append(restrictedEntryPeriod)
-		restrictedEntryPeriod = False
-	else:
-		violatePeriodTotal += len(violate)
-		humanPeriodTotal += len(humansDetected)
-		if RE:
-			restrictedEntryPeriod = True
+	if DATA_PRESENT:
+		if frameCount % 5 == 0:
+			violateCountFrame.append(ceil(violatePeriodTotal / 5))
+			humanCountFrame.append(ceil(humanPeriodTotal / 5))
+			violatePeriodTotal = 0
+			humanPeriodTotal = 0
+			restrictedEntryFrame.append(restrictedEntryPeriod)
+			restrictedEntryPeriod = False
+		else:
+			violatePeriodTotal += len(violate)
+			humanPeriodTotal += len(humansDetected)
+			if RE:
+				restrictedEntryPeriod = True
 	
 	cv2.imshow("Processed Output", frame)
-	if cv2.waitKey() & 0xFF == ord("q"):
+
+	# cv2.waitKey()
+	if cv2.waitKey(100) & 0xFF == ord('q'):
 		break
 
 cap.release()
@@ -159,6 +181,7 @@ cv2.destroyAllWindows()
 
 # Calculate and print system & processing data
 t1 = time.time() - t0
+print("AAA")
 print("Frame Count: ", frameCount)
 print("Time elapsed: ", t1)
 print("Processed FPS: ", frameCount/t1)
