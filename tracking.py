@@ -2,7 +2,12 @@ import numpy as np
 import cv2
 from config import MIN_CONF, NMS_THRESH 
 
-def detect_human (net, ln, frame):
+from deep_sort import nn_matching
+from deep_sort.detection import Detection
+from deep_sort.tracker import Tracker
+from deep_sort import generate_detections as gdet
+
+def detect_human (net, ln, frame, encoder, tracker):
 # Get the dimension of the frame
 	(frameHeight, frameWidth) = frame.shape[:2]
 	# Initialize lists needed for detection
@@ -39,16 +44,37 @@ def detect_human (net, ln, frame):
 				centroids.append((centerX, centerY))
 				confidences.append(float(confidence))
 	# Perform Non-maxima suppression to suppress weak and overlapping boxes
+	# It will filter out unnecessary boxes, i.e. box within box
+	# Output will be indexs of useful boxes
 	idxs = cv2.dnn.NMSBoxes(boxes, confidences, MIN_CONF, NMS_THRESH)
 
-	humansDetected = []
-	# Check if there are detection
+	tracked_bboxes = []
 	if len(idxs) > 0:
-		for i in idxs.flatten():
-			(x, y) = (boxes[i][0], boxes[i][1])
-			(w, h) = (boxes[i][2], boxes[i][3])
-			# Add probability, coordinates and centroid to detection list
-			r = (confidences[i], (x, y, x + w, y + h), centroids[i])
-			humansDetected.append(r)
+		del_idxs = []
+		for i in range(len(boxes)):
+			if i not in idxs:
+				del_idxs.append(i)
+		for i in sorted(del_idxs, reverse=True):
+			del boxes[i]
+			del centroids[i]
+			del confidences[i]
 
-	return humansDetected
+		boxes = np.array(boxes)
+		centroids = np.array(centroids)
+		confidences = np.array(confidences)
+		features = np.array(encoder(frame, boxes))
+		detections = [Detection(bbox, score, centroid, feature) for bbox, score, centroid, feature in zip(boxes, scores, centroids, features)]
+
+		tracker.predict()
+		tracker.update(detections)
+
+		# Obtain info from the tracks
+		for track in tracker.tracks:
+				if not track.is_confirmed() or track.time_since_update > 5:
+						continue 
+				bbox = track.to_tlbr() # Get the corrected/predicted bounding box
+				tracking_id = track.track_id # Get the ID for the particular track
+				tracked_bboxes.append(bbox.tolist() + [tracking_id]) # Structure data, that we could use it with our draw_bbox function
+
+	return tracked_bboxes
+
