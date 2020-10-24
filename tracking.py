@@ -7,7 +7,7 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from deep_sort import generate_detections as gdet
 
-def detect_human (net, ln, frame, encoder, tracker):
+def detect_human (net, ln, frame, encoder, tracker, time):
 # Get the dimension of the frame
 	(frameHeight, frameWidth) = frame.shape[:2]
 	# Initialize lists needed for detection
@@ -66,15 +66,16 @@ def detect_human (net, ln, frame, encoder, tracker):
 		detections = [Detection(bbox, score, centroid, feature) for bbox, score, centroid, feature in zip(boxes, scores, centroids, features)]
 
 		tracker.predict()
-		tracker.update(detections)
+		expired = tracker.update(detections, time)
 
 		# Obtain info from the tracks
 		for track in tracker.tracks:
 				if not track.is_confirmed() or track.time_since_update > 5:
 						continue 
 				bbox = track.to_tlbr() # Get the corrected/predicted bounding box
+				centroid = track.movement[-1] # Get the centroid
 				tracking_id = track.track_id # Get the ID for the particular track
-				tracked_bboxes.append(bbox.tolist() + [tracking_id]) # Structure data, that we could use it with our draw_bbox function
+				tracked_bboxes.append(bbox.tolist() + [centroid[0]] + [centroid[1]] + [tracking_id]) # Structure data, that we could use it with our draw_bbox function
 
-	return tracked_bboxes
+	return [tracked_bboxes, expired]
 

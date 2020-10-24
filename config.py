@@ -1,6 +1,8 @@
 import datetime
 
 # Show individuals detected
+SHOW_PROCESSING_OUTPUT = False
+# Show individuals detected
 SHOW_DETECT = True
 # Data presentation
 DATA_PRESENT = False

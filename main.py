@@ -7,10 +7,11 @@ import datetime
 import numpy as np
 import imutils
 import cv2
+import sys
 import time
 from tracking import detect_human
 from util import rect_distance
-from config import SHOW_DETECT, DATA_PRESENT, RE_CHECK, RE_START_TIME, RE_END_TIME, SD_CHECK, SOCIAL_DISTANCE
+from config import SHOW_DETECT, DATA_PRESENT, RE_CHECK, RE_START_TIME, RE_END_TIME, SD_CHECK, SOCIAL_DISTANCE, SHOW_PROCESSING_OUTPUT
 
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
@@ -27,6 +28,7 @@ RGB_COLORS = {
 
 # Read from video
 cap = cv2.VideoCapture("video/7.mp4")
+IS_CAM = False
 
 # Load YOLOv3-tiny weights and config
 weightsPath = "YOLOv4-tiny/yolov4-tiny.weights"
@@ -63,6 +65,7 @@ restrictedEntryFrame = []
 restrictedEntryPeriod = False
 reWarningTimeout = 0
 sdWarningTimeout = 0
+vidFrameLength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
 # Start counting time for processing speed calculation
 t0 = time.time()
@@ -78,8 +81,15 @@ while True:
 	frame = imutils.resize(frame, width=720)
 	frameCount += 1
 
+	# Get current time
+	currentDateTime = datetime.datetime.now()
+
 	# Run detection algorithm
-	humansDetected = detect_human(net, ln, frame, encoder, tracker)
+	if IS_CAM:
+		recordTime = currentDateTime
+	else:
+		recordTime = frameCount
+	[humansDetected, expired] = detect_human(net, ln, frame, encoder, tracker, recordTime)
 	humansDetected = [list(map(int, detect)) for detect in humansDetected]
 
 	violate = set()
@@ -97,8 +107,7 @@ while True:
 						violate.add(j)
 						violateCount[j] += 1
 
-	# Get current time
-	currentDateTime = datetime.datetime.now()
+	
 	# Check for restricted entry
 	RE = False
 	if RE_CHECK:
@@ -107,17 +116,19 @@ while True:
 				RE = True
 		
 	for i, human in enumerate(humansDetected):
-		[x, y, w, h, id] = human
+		[x, y, w, h, cx, cy, id] = human
 		if i in violate:
 			# cv2.putText((frame), str(int(violateCount[i])), (x	, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["yellow"], 2)
 			cv2.rectangle(frame, (x, y), (w, h), RGB_COLORS["yellow"], 2)
+			cv2.circle(frame, (cx, cy), 5, RGB_COLORS["yellow"], 2)
 			cv2.putText(frame, str(id), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["yellow"], 2)
 		elif SHOW_DETECT and not RE:
 			cv2.rectangle(frame, (x , y), (w, h), RGB_COLORS["green"], 2)
 			cv2.putText(frame, str(id), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["green"], 2)
+			cv2.circle(frame, (cx, cy), 5, RGB_COLORS["green"], 2)
 
 		if RE:
-			cv2.rectangle(frame, (x - 5 , y - 5 ), (w + 5, h + 5), (0, 0, 255), 5)
+			cv2.rectangle(frame, (x - 5 , y - 5 ), (w + 5, h + 5), RGB_COLORS["red"], 5)
 
 	if SD_CHECK:
 		# Warning stays on screen for 10 frames
@@ -169,11 +180,25 @@ while True:
 			humanPeriodTotal += len(humansDetected)
 			if RE:
 				restrictedEntryPeriod = True
-	
-	cv2.imshow("Processed Output", frame)
+
+	if SHOW_PROCESSING_OUTPUT:
+		cv2.imshow("Processed Output", frame)
+	else:
+		progress = frameCount/vidFrameLength * 100
+		sys.stdout.write('\r')
+    # the exact output you're looking for:
+		if frameCount % 4 == 0:
+			sys.stdout.write("Processing  -  {:.2f}% ".format(progress, frameCount))
+		elif (frameCount - 1) % 4 == 0:
+			sys.stdout.write("Processing  \  {:.2f}% ".format(progress, frameCount))
+		elif frameCount % 2 == 0:
+			sys.stdout.write("Processing  |  {:.2f}% ".format(progress, frameCount))
+		else:
+			sys.stdout.write("Processing  /  {:.2f}% ".format(progress, frameCount))
+		sys.stdout.flush()
 
 	# cv2.waitKey()
-	if cv2.waitKey(100) & 0xFF == ord('q'):
+	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
 
 cap.release()
@@ -181,7 +206,6 @@ cv2.destroyAllWindows()
 
 # Calculate and print system & processing data
 t1 = time.time() - t0
-print("AAA")
 print("Frame Count: ", frameCount)
 print("Time elapsed: ", t1)
 print("Processed FPS: ", frameCount/t1)
