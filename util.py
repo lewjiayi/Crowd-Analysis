@@ -1,3 +1,4 @@
+import sys
 from scipy.spatial.distance import euclidean
 
 # Calculate shortest distance between two rectangle
@@ -31,3 +32,17 @@ def rect_distance(rect1, rect2):
 	else:
 		# Rect 1 & 2 intersects
 		return  0
+
+def progress(frameCount, vidFrameLength):
+	progress = frameCount/vidFrameLength * 100
+	sys.stdout.write('\r')
+	# the exact output you're looking for:
+	if frameCount % 4 == 0:
+		sys.stdout.write("Processing  -  {:.2f}% ".format(progress, frameCount))
+	elif (frameCount - 1) % 4 == 0:
+		sys.stdout.write("Processing  \  {:.2f}% ".format(progress, frameCount))
+	elif frameCount % 2 == 0:
+		sys.stdout.write("Processing  |  {:.2f}% ".format(progress, frameCount))
+	else:
+		sys.stdout.write("Processing  /  {:.2f}% ".format(progress, frameCount))
+	sys.stdout.flush()

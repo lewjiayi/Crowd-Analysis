@@ -1,38 +1,26 @@
-from math import ceil, floor
-import matplotlib
-matplotlib.use('tkagg')
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import datetime
 import numpy as np
 import imutils
 import cv2
-import sys
 import time
+from math import ceil
 from tracking import detect_human
-from util import rect_distance
-from config import SHOW_DETECT, DATA_PRESENT, RE_CHECK, RE_START_TIME, RE_END_TIME, SD_CHECK, SOCIAL_DISTANCE, SHOW_PROCESSING_OUTPUT
-
+from data_present import data_present
+from util import rect_distance, progress
+from colors import RGB_COLORS
+from config import SHOW_DETECT, DATA_PRESENT, RE_CHECK, RE_START_TIME, RE_END_TIME, SD_CHECK, SOCIAL_DISTANCE, SHOW_PROCESSING_OUTPUT, YOLO_CONFIG, VIDEO_CONFIG
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from deep_sort import generate_detections as gdet
 
-RGB_COLORS = {
-	"green": (0, 255, 0),
-	"red": (255, 0, 0),
-	"yellow": (0, 255, 255),
-	"white": (0, 0, 0),
-	"black": (255, 255, 255)
-}
-
 # Read from video
-cap = cv2.VideoCapture("video/7.mp4")
-IS_CAM = False
+cap = cv2.VideoCapture(VIDEO_CONFIG["VIDEO_CAP"])
+IS_CAM = VIDEO_CONFIG["IS_CAM"]
 
 # Load YOLOv3-tiny weights and config
-weightsPath = "YOLOv4-tiny/yolov4-tiny.weights"
-configPath = "YOLOv4-tiny/yolov4-tiny.cfg"
+weightsPath = YOLO_CONFIG["weightsPath"]
+configPath = YOLO_CONFIG["configPath"]
 
 # Load the YOLOv3-tiny pre-trained COCO dataset 
 net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
@@ -106,7 +94,6 @@ while True:
 						violateCount[i] += 1
 						violate.add(j)
 						violateCount[j] += 1
-
 	
 	# Check for restricted entry
 	RE = False
@@ -126,7 +113,6 @@ while True:
 			cv2.rectangle(frame, (x , y), (w, h), RGB_COLORS["green"], 2)
 			cv2.putText(frame, str(id), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["green"], 2)
 			cv2.circle(frame, (cx, cy), 5, RGB_COLORS["green"], 2)
-
 		if RE:
 			cv2.rectangle(frame, (x - 5 , y - 5 ), (w + 5, h + 5), RGB_COLORS["red"], 5)
 
@@ -184,18 +170,7 @@ while True:
 	if SHOW_PROCESSING_OUTPUT:
 		cv2.imshow("Processed Output", frame)
 	else:
-		progress = frameCount/vidFrameLength * 100
-		sys.stdout.write('\r')
-    # the exact output you're looking for:
-		if frameCount % 4 == 0:
-			sys.stdout.write("Processing  -  {:.2f}% ".format(progress, frameCount))
-		elif (frameCount - 1) % 4 == 0:
-			sys.stdout.write("Processing  \  {:.2f}% ".format(progress, frameCount))
-		elif frameCount % 2 == 0:
-			sys.stdout.write("Processing  |  {:.2f}% ".format(progress, frameCount))
-		else:
-			sys.stdout.write("Processing  /  {:.2f}% ".format(progress, frameCount))
-		sys.stdout.flush()
+		progress(frameCount, vidFrameLength)
 
 	# cv2.waitKey()
 	if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -211,22 +186,4 @@ print("Time elapsed: ", t1)
 print("Processed FPS: ", frameCount/t1)
 
 if DATA_PRESENT:
-	# Plot graphs of violation & crowd count vs time(frame)
-	timeAxis = []
-	graphHeight = max(humanCountFrame)
-
-	fig, ax = plt.subplots()
-	for f in range(floor(frameCount/5)):
-		timeAxis.append(f * 5)
-		if restrictedEntryFrame[f]:
-			# plt.vlines(x = f * 5, ymin = 0, ymax = graphHeight / 5 , colors = "red")
-			ax.add_patch(patches.Rectangle((f * 5, 0), 5 , graphHeight / 10, facecolor = 'red', fill=True))
-
-	violateLine, = plt.plot(timeAxis, violateCountFrame, linewidth=3, label="Violation Count")
-	crowdLine, =  plt.plot(timeAxis, humanCountFrame, linewidth=3, label="Crowd Count")
-	plt.title("Violation & Crowd Count versus Time")
-	plt.xlabel("Frames")
-	plt.ylabel("Count")
-	reLegend = patches.Patch(color= "red", label="Restriced Entry Detected")
-	plt.legend(handles=[crowdLine, violateLine, reLegend])
-	plt.show()
+	data_present(frameCount, humanCountFrame, restrictedEntryFrame, violateCountFrame)

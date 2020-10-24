@@ -19,3 +19,15 @@ SOCIAL_DISTANCE = 50
 MIN_CONF = 0.1
 # Threshold for Non-maxima surpression
 NMS_THRESH = 0.2
+
+# Video Path
+VIDEO_CONFIG = {
+	"VIDEO_CAP" : "video/7.mp4",
+	"IS_CAM" : False
+}
+
+# Load YOLOv3-tiny weights and config
+YOLO_CONFIG = {
+	"weightsPath" : "YOLOv4-tiny/yolov4-tiny.weights",
+	"configPath" : "YOLOv4-tiny/yolov4-tiny.cfg"
+}
