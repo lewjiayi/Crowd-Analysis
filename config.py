@@ -1,7 +1,7 @@
 import datetime
 
 # Show individuals detected
-SHOW_PROCESSING_OUTPUT = False
+SHOW_PROCESSING_OUTPUT = True
 # Show individuals detected
 SHOW_DETECT = True
 # Data presentation
@@ -28,6 +28,6 @@ VIDEO_CONFIG = {
 
 # Load YOLOv3-tiny weights and config
 YOLO_CONFIG = {
-	"weightsPath" : "YOLOv4-tiny/yolov4-tiny.weights",
-	"configPath" : "YOLOv4-tiny/yolov4-tiny.cfg"
+	"WEIGHTS_PATH" : "YOLOv4-tiny/yolov4-tiny.weights",
+	"CONFIG_PATH" : "YOLOv4-tiny/yolov4-tiny.cfg"
 }

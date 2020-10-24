@@ -33,16 +33,16 @@ def rect_distance(rect1, rect2):
 		# Rect 1 & 2 intersects
 		return  0
 
-def progress(frameCount, vidFrameLength):
-	progress = frameCount/vidFrameLength * 100
+def progress(frame_count, vid_frame_length):
+	progress = frame_count/vid_frame_length * 100
 	sys.stdout.write('\r')
 	# the exact output you're looking for:
-	if frameCount % 4 == 0:
-		sys.stdout.write("Processing  -  {:.2f}% ".format(progress, frameCount))
-	elif (frameCount - 1) % 4 == 0:
-		sys.stdout.write("Processing  \  {:.2f}% ".format(progress, frameCount))
-	elif frameCount % 2 == 0:
-		sys.stdout.write("Processing  |  {:.2f}% ".format(progress, frameCount))
+	if frame_count % 4 == 0:
+		sys.stdout.write("Processing  -  {:.2f}% ".format(progress, frame_count))
+	elif (frame_count - 1) % 4 == 0:
+		sys.stdout.write("Processing  \  {:.2f}% ".format(progress, frame_count))
+	elif frame_count % 2 == 0:
+		sys.stdout.write("Processing  |  {:.2f}% ".format(progress, frame_count))
 	else:
-		sys.stdout.write("Processing  /  {:.2f}% ".format(progress, frameCount))
+		sys.stdout.write("Processing  /  {:.2f}% ".format(progress, frame_count))
 	sys.stdout.flush()

@@ -9,7 +9,7 @@ from deep_sort import generate_detections as gdet
 
 def detect_human (net, ln, frame, encoder, tracker, time):
 # Get the dimension of the frame
-	(frameHeight, frameWidth) = frame.shape[:2]
+	(frame_height, frame_width) = frame.shape[:2]
 	# Initialize lists needed for detection
 	boxes = []
 	centroids = []
@@ -21,27 +21,27 @@ def detect_human (net, ln, frame, encoder, tracker, time):
 
 	# Perform forward pass of YOLOv3, output are the boxes and probabilities
 	net.setInput(blob)
-	layerOutputs = net.forward(ln)
+	layer_outputs = net.forward(ln)
 
 	# For each output
-	for output in layerOutputs:
+	for output in layer_outputs:
 		# For each detection in output 
 		for detection in output:
 			# Extract the class ID and confidence 
 			scores = detection[5:]
-			classID = np.argmax(scores)
-			confidence = scores[classID]
+			class_id = np.argmax(scores)
+			confidence = scores[class_id]
 			# Class ID for person is 0, check if the confidence meet threshold
-			if classID == 0 and confidence > MIN_CONF:
+			if class_id == 0 and confidence > MIN_CONF:
 				# Scale the bounding box coordinates back to the size of the image
-				box = detection[0:4] * np.array([frameWidth, frameHeight, frameWidth, frameHeight])
-				(centerX, centerY, width, height) = box.astype("int")
+				box = detection[0:4] * np.array([frame_width, frame_height, frame_width, frame_height])
+				(center_x, center_y, width, height) = box.astype("int")
 				# Derive the coordinates for the top left corner of the bounding box
-				x = int(centerX - (width / 2))
-				y = int(centerY - (height / 2))
+				x = int(center_x - (width / 2))
+				y = int(center_y - (height / 2))
 				# Add processed results to respective list
 				boxes.append([x, y, int(width), int(height)])
-				centroids.append((centerX, centerY))
+				centroids.append((center_x, center_y))
 				confidences.append(float(confidence))
 	# Perform Non-maxima suppression to suppress weak and overlapping boxes
 	# It will filter out unnecessary boxes, i.e. box within box
@@ -67,6 +67,7 @@ def detect_human (net, ln, frame, encoder, tracker, time):
 
 		tracker.predict()
 		expired = tracker.update(detections, time)
+
 
 		# Obtain info from the tracks
 		for track in tracker.tracks:
