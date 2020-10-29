@@ -63,7 +63,7 @@ class Track:
 
     """
 
-    def __init__(self, mean, covariance, track_id, n_init, max_age,
+    def __init__(self, mean, covariance, track_id, entry, position, n_init, max_age,
                  feature=None):
         self.mean = mean
         self.covariance = covariance
@@ -79,6 +79,13 @@ class Track:
 
         self._n_init = n_init
         self._max_age = max_age
+
+        # Movement trails, recorded by centroids
+        self.positions = [position]
+
+        # Initial detection
+        self.entry = entry
+        self.exit = None
 
     def to_tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
@@ -138,6 +145,7 @@ class Track:
         self.mean, self.covariance = kf.update(
             self.mean, self.covariance, detection.to_xyah())
         self.features.append(detection.feature)
+        self.positions.append(detection.centroid)
 
         self.hits += 1
         self.time_since_update = 0
