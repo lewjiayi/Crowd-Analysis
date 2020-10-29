@@ -15,7 +15,24 @@ from deep_sort.tracker import Tracker
 from deep_sort import generate_detections as gdet
 IS_CAM = VIDEO_CONFIG["IS_CAM"]
 
-def video_process(cap, net, ln, encoder, tracker, data_input):
+def record_movement_data(writer, movement):
+	track_id = movement.track_id 
+	entry_time = movement.entry 
+	exit_time = movement.exit			
+	positions = movement.positions
+	positions = np.array(positions).flatten()
+	positions = list(positions)
+	data = [track_id] + [entry_time] + [exit_time] + positions
+	writer.writerow(data)
+
+def end_video(tracker, frame_count, writer):
+	for t in tracker.tracks:
+		if t.is_confirmed():
+			t.exit = frame_count
+			record_movement_data(writer, t)
+		
+
+def video_process(cap, net, ln, encoder, tracker, writer):
 	frame_count = 0
 	violate_count_frame = []
 	violate_period_total = 0
@@ -32,6 +49,7 @@ def video_process(cap, net, ln, encoder, tracker, data_input):
 
 		# Stop the loop when video ends
 		if not ret:
+			end_video(tracker, frame_count, writer)
 			break
 
 		# Resize Frame to 720p
@@ -51,6 +69,8 @@ def video_process(cap, net, ln, encoder, tracker, data_input):
 		[humans_detected, expired] = detect_human(net, ln, frame, encoder, tracker, record_time)
 		humans_detected = [list(map(int, detect)) for detect in humans_detected]
 
+		for movement in expired:
+			record_movement_data(writer, movement)
 
 		violate = set()
 		if SD_CHECK:
@@ -146,8 +166,8 @@ def video_process(cap, net, ln, encoder, tracker, data_input):
 
 		# cv2.waitKey()
 		if cv2.waitKey(1) & 0xFF == ord('q'):
+			end_video(tracker, frame_count, writer)
 			break
 	
 	cv2.destroyAllWindows()
-	data_input.send([frame_count, human_count_frame, restricted_entry_frame, violate_count_frame])
-	data_input.close()
+	return [frame_count, human_count_frame, restricted_entry_frame, violate_count_frame]

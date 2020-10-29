@@ -74,7 +74,11 @@ class Tracker:
             self.tracks[track_idx].mark_missed()
         for detection_idx in unmatched_detections:
             self._initiate_track(detections[detection_idx], time)
-        expired = [t for t in self.tracks if t.is_deleted()]
+        expired = []
+        for t in self.tracks:
+            if t.is_deleted():
+                t.exit = time
+                expired.append(t)
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 
         # Update distance metric.

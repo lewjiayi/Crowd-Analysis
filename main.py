@@ -1,12 +1,14 @@
 import datetime
+import time
 import numpy as np
 import imutils
 import cv2
 import time
-from multiprocessing import Queue, Pipe, Process
+import os.path as path
+import csv
 from data_present import data_present
 from video_process import video_process
-from config import DATA_PRESENT, YOLO_CONFIG, VIDEO_CONFIG
+from config import DATA_PRESENT, YOLO_CONFIG, VIDEO_CONFIG, SHOW_PROCESSING_OUTPUT
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
@@ -41,16 +43,19 @@ encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
 tracker = Tracker(metric)
 
+file = open('movement_data.csv', 'w') 
+writer = csv.writer(file)
+if path.getsize('movement_data.csv') == 0:
+	writer.writerow(['Track ID', 'Entry time', 'Exit Time', 'Movement Tracks'])
+
 # Start counting time for processing speed calculation
 t0 = time.time()
 
-# Initialize data present variable
-data_output, data_input = Pipe()
-
-video_process(cap, net, ln, encoder, tracker, data_input)
+[frame_count, human_count_frame, restricted_entry_frame, violate_count_frame] = video_process(cap, net, ln, encoder, tracker, writer)
 cap.release()
+cv2.destroyAllWindows()
+file.close()
 
-[frame_count, human_count_frame, restricted_entry_frame, violate_count_frame] = data_output.recv()
 # Calculate and print system & processing data
 t1 = time.time() - t0
 print("Frame Count: ", frame_count)
@@ -59,4 +64,3 @@ print("Processed FPS: ", frame_count/t1)
 
 if DATA_PRESENT:
 	data_present(frame_count, human_count_frame, restricted_entry_frame, violate_count_frame)
-
