@@ -36,13 +36,13 @@ def rect_distance(rect1, rect2):
 def progress(frame_count, vid_frame_length):
 	progress = frame_count/vid_frame_length * 100
 	sys.stdout.write('\r')
-	# the exact output you're looking for:
-	if frame_count % 4 == 0:
-		sys.stdout.write("Processing  -  {:.2f}% ".format(progress, frame_count))
-	elif (frame_count - 1) % 4 == 0:
-		sys.stdout.write("Processing  \  {:.2f}% ".format(progress, frame_count))
-	elif frame_count % 2 == 0:
-		sys.stdout.write("Processing  |  {:.2f}% ".format(progress, frame_count))
-	else:
-		sys.stdout.write("Processing  /  {:.2f}% ".format(progress, frame_count))
+	sys.stdout.write("Processing  -  {:.2f}% ".format(progress, frame_count))
+	# if frame_count % 4 == 0:
+	# 	sys.stdout.write("Processing  -  {:.2f}% ".format(progress, frame_count))
+	# elif (frame_count - 1) % 4 == 0:
+	# 	sys.stdout.write("Processing  \  {:.2f}% ".format(progress, frame_count))
+	# elif frame_count % 2 == 0:
+	# 	sys.stdout.write("Processing  |  {:.2f}% ".format(progress, frame_count))
+	# else:
+	# 	sys.stdout.write("Processing  /  {:.2f}% ".format(progress, frame_count))
 	sys.stdout.flush()
