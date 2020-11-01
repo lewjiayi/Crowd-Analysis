@@ -5,17 +5,16 @@ import cv2
 import time
 from math import ceil
 from tracking import detect_human
-from data_present import data_present
 from util import rect_distance, progress
 from colors import RGB_COLORS
-from config import SHOW_DETECT, DATA_PRESENT, RE_CHECK, RE_START_TIME, RE_END_TIME, SD_CHECK, SOCIAL_DISTANCE, SHOW_PROCESSING_OUTPUT, YOLO_CONFIG, VIDEO_CONFIG
+from config import SHOW_DETECT, DATA_PRESENT, RE_CHECK, RE_START_TIME, RE_END_TIME, SD_CHECK, SOCIAL_DISTANCE, SHOW_PROCESSING_OUTPUT, YOLO_CONFIG, VIDEO_CONFIG, DATA_RECORD_RATE
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from deep_sort import generate_detections as gdet
 IS_CAM = VIDEO_CONFIG["IS_CAM"]
 
-def record_movement_data(writer, movement):
+def _record_movement_data(movement_data_writer, movement):
 	track_id = movement.track_id 
 	entry_time = movement.entry 
 	exit_time = movement.exit			
@@ -23,16 +22,24 @@ def record_movement_data(writer, movement):
 	positions = np.array(positions).flatten()
 	positions = list(positions)
 	data = [track_id] + [entry_time] + [exit_time] + positions
-	writer.writerow(data)
+	movement_data_writer.writerow(data)
 
-def end_video(tracker, frame_count, writer):
+def _record_crowd_data(time, human_count, violate_count, restricted_entry, crowd_data_writer):
+	data = [time, human_count, violate_count, int(restricted_entry)]
+	crowd_data_writer.writerow(data)
+
+def _end_video(tracker, frame_count, movement_data_writer):
 	for t in tracker.tracks:
 		if t.is_confirmed():
 			t.exit = frame_count
-			record_movement_data(writer, t)
+			_record_movement_data(movement_data_writer, t)
 		
 
-def video_process(cap, net, ln, encoder, tracker, writer):
+def video_process(cap, net, ln, encoder, tracker, movement_data_writer, crowd_data_writer):
+	VID_FRAME_LENGTH = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+	VID_FPS = cap.get(cv2.CAP_PROP_FPS)
+	DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
+
 	frame_count = 0
 	violate_count_frame = []
 	violate_period_total = 0
@@ -42,21 +49,26 @@ def video_process(cap, net, ln, encoder, tracker, writer):
 	restricted_entry_period = False
 	re_warning_timeout = 0
 	sd_warning_timeout = 0
-	vid_frame_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
 	while True:
 		(ret, frame) = cap.read()
 
 		# Stop the loop when video ends
 		if not ret:
-			end_video(tracker, frame_count, writer)
+			_end_video(tracker, frame_count, movement_data_writer)
 			break
 
-		# Resize Frame to 720p
-		frame = imutils.resize(frame, width=720)
+		# Update frame count
 		if frame_count > 1000000:
 			frame_count = 0
 		frame_count += 1
+		
+		# Skip frames according to given rate
+		if frame_count % DATA_RECORD_FRAME != 0:
+			continue
+
+		# Resize Frame to 720p
+		frame = imutils.resize(frame, width=720)
 
 		# Get current time
 		current_datetime = datetime.datetime.now()
@@ -66,11 +78,13 @@ def video_process(cap, net, ln, encoder, tracker, writer):
 			record_time = current_datetime
 		else:
 			record_time = frame_count
-		[humans_detected, expired] = detect_human(net, ln, frame, encoder, tracker, record_time)
+		
+		# Run tracking algorithm
+		[humans_detected, expired] = detect_human(net, ln, frame, encoder, tracker, DATA_RECORD_FRAME, record_time)
 		humans_detected = [list(map(int, detect)) for detect in humans_detected]
 
 		for movement in expired:
-			record_movement_data(writer, movement)
+			_record_movement_data(movement_data_writer, movement)
 
 		violate = set()
 		if SD_CHECK:
@@ -146,28 +160,17 @@ def video_process(cap, net, ln, encoder, tracker, writer):
 		# Store data violation and crowd count data for graph plotting
 		# Data store on average of every 5 frames
 		if DATA_PRESENT:
-			if frame_count % 5 == 0:
-				violate_count_frame.append(ceil(violate_period_total / 5))
-				human_count_frame.append(ceil(human_period_total / 5))
-				violate_period_total = 0
-				human_period_total = 0
-				restricted_entry_frame.append(restricted_entry_period)
-				restricted_entry_period = False
-			else:
-				violate_period_total += len(violate)
-				human_period_total += len(humans_detected)
-				if RE:
-					restricted_entry_period = True
+			_record_crowd_data(record_time, len(humans_detected), len(violate), RE, crowd_data_writer)
 
 		if SHOW_PROCESSING_OUTPUT:
 			cv2.imshow("Processed Output", frame)
 		else:
-			progress(frame_count, vid_frame_length)
+			progress(frame_count, VID_FRAME_LENGTH)
 
 		# cv2.waitKey()
 		if cv2.waitKey(1) & 0xFF == ord('q'):
-			end_video(tracker, frame_count, writer)
+			_end_video(tracker, frame_count, movement_data_writer)
 			break
 	
 	cv2.destroyAllWindows()
-	return [frame_count, human_count_frame, restricted_entry_frame, violate_count_frame]
+	return frame_count

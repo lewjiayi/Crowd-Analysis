@@ -76,10 +76,10 @@ class Tracker:
             self._initiate_track(detections[detection_idx], time)
         expired = []
         for t in self.tracks:
-            if t.is_deleted():
+            if t.is_recorded():
                 t.exit = time
                 expired.append(t)
-        self.tracks = [t for t in self.tracks if not t.is_deleted()]
+        self.tracks = [t for t in self.tracks if not t.is_deleted() and not t.is_recorded()]
 
         # Update distance metric.
         active_targets = [t.track_id for t in self.tracks if t.is_confirmed()]
@@ -138,6 +138,6 @@ class Tracker:
     def _initiate_track(self, detection, time):
         mean, covariance = self.kf.initiate(detection.to_xyah())
         self.tracks.append(Track(
-            mean, covariance, self._next_id, time, detection.centroid, self.n_init, self.max_age,
-            detection.feature))
+            mean, covariance, self._next_id, time, detection.centroid, self.n_init, 
+            self.max_age, detection.feature))
         self._next_id += 1

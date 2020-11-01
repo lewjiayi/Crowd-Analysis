@@ -135,5 +135,7 @@ video/
 YOLOv3-tiny/
 YOLOv4-tiny/
 
-# Movement Data
+# Processed data files
 movement_data.csv
+crowd_data.csv
+video_data.json
