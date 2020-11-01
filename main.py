@@ -43,8 +43,8 @@ encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
 tracker = Tracker(metric)
 
-movement_data_file = open('movement_data.csv', 'w') 
-crowd_data_file = open('crowd_data.csv', 'w')
+movement_data_file = open('processed_data/movement_data.csv', 'w') 
+crowd_data_file = open('processed_data/crowd_data.csv', 'w')
 # sd_violate_data_file = open('sd_violate_data.csv', 'w')
 # restricted_entry_data_file = open('restricted_entry_data.csv', 'w')
 
@@ -53,9 +53,9 @@ crowd_data_writer = csv.writer(crowd_data_file)
 # sd_violate_writer = csv.writer(sd_violate_data_file)
 # restricted_entry_data_writer = csv.writer(restricted_entry_data_file)
 
-if path.getsize('movement_data.csv') == 0:
+if path.getsize('processed_data/movement_data.csv') == 0:
 	movement_data_writer.writerow(['Track ID', 'Entry time', 'Exit Time', 'Movement Tracks'])
-if path.getsize('crowd_data.csv') == 0:
+if path.getsize('processed_data/crowd_data.csv') == 0:
 	crowd_data_writer.writerow(['Time', 'Human Count', 'Social Distance violate', 'Restricted Entry'])
 
 VID_FPS = cap.get(cv2.CAP_PROP_FPS)
@@ -84,6 +84,6 @@ video_data = {
 	"END_TIME": t1
 }
 
-with open('video_data.json', 'w') as video_data_file:
+with open('processed_data/video_data.json', 'w') as video_data_file:
 	json.dump(video_data, video_data_file)
 

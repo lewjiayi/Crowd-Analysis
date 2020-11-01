@@ -10,7 +10,7 @@ from colors import RGB_COLORS, gradient_color_RGB
 print("Loading tracks")
 t0 = time.time()
 tracks = []
-with open('movement_data.csv', 'r') as file:
+with open('processed_data/movement_data.csv', 'r') as file:
     reader = csv.reader(file, delimiter=',')
     for row in reader:
         if len(row[3:]) > 4:
