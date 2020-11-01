@@ -13,7 +13,7 @@ tracks = []
 with open('movement_data.csv', 'r') as file:
     reader = csv.reader(file, delimiter=',')
     for row in reader:
-        if len(row[3:]) > 20:
+        if len(row[3:]) > 4:
             temp = []
             for x in row[3:]:
                 temp.append(int(x))
@@ -26,19 +26,6 @@ cap = cv2.VideoCapture(VIDEO_CONFIG["VIDEO_CAP"])
 cap.set(1, 100)
 (ret, frame) = cap.read()
 frame = imutils.resize(frame, width=720)
-
-# for track in tracks:
-#     for i in track:
-#         if not type(i) == int:
-#             print("Not int")
-
-# a = [1]
-# for track in tracks:
-#     if len(track) > len(a):
-#         a = track
-
-# print(a)
-# print(len(a))
 
 print("Drawing tracks")
 t0 = time.time()

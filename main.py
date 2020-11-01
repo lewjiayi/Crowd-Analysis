@@ -6,9 +6,9 @@ import cv2
 import time
 import os.path as path
 import csv
-from data_present import data_present
+import json
 from video_process import video_process
-from config import DATA_PRESENT, YOLO_CONFIG, VIDEO_CONFIG, SHOW_PROCESSING_OUTPUT
+from config import DATA_PRESENT, YOLO_CONFIG, VIDEO_CONFIG, SHOW_PROCESSING_OUTPUT, DATA_RECORD_RATE
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
@@ -43,18 +43,32 @@ encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
 tracker = Tracker(metric)
 
-file = open('movement_data.csv', 'w') 
-writer = csv.writer(file)
+movement_data_file = open('movement_data.csv', 'w') 
+crowd_data_file = open('crowd_data.csv', 'w')
+# sd_violate_data_file = open('sd_violate_data.csv', 'w')
+# restricted_entry_data_file = open('restricted_entry_data.csv', 'w')
+
+movement_data_writer = csv.writer(movement_data_file)
+crowd_data_writer = csv.writer(crowd_data_file)
+# sd_violate_writer = csv.writer(sd_violate_data_file)
+# restricted_entry_data_writer = csv.writer(restricted_entry_data_file)
+
 if path.getsize('movement_data.csv') == 0:
-	writer.writerow(['Track ID', 'Entry time', 'Exit Time', 'Movement Tracks'])
+	movement_data_writer.writerow(['Track ID', 'Entry time', 'Exit Time', 'Movement Tracks'])
+if path.getsize('crowd_data.csv') == 0:
+	crowd_data_writer.writerow(['Time', 'Human Count', 'Social Distance violate', 'Restricted Entry'])
+
+VID_FPS = cap.get(cv2.CAP_PROP_FPS)
+DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
 
 # Start counting time for processing speed calculation
 t0 = time.time()
 
-[frame_count, human_count_frame, restricted_entry_frame, violate_count_frame] = video_process(cap, net, ln, encoder, tracker, writer)
+frame_count = video_process(cap, net, ln, encoder, tracker, movement_data_writer, crowd_data_writer)
 cap.release()
 cv2.destroyAllWindows()
-file.close()
+movement_data_file.close()
+crowd_data_file.close()
 
 # Calculate and print system & processing data
 t1 = time.time() - t0
@@ -62,5 +76,14 @@ print("Frame Count: ", frame_count)
 print("Time elapsed: ", t1)
 print("Processed FPS: ", frame_count/t1)
 
-if DATA_PRESENT:
-	data_present(frame_count, human_count_frame, restricted_entry_frame, violate_count_frame)
+video_data = {
+	"IS_CAM": IS_CAM,
+	"PROCESSED_FRAMES": frame_count,
+	"DATA_RECORD_FRAME" : DATA_RECORD_FRAME,
+	"START_TIME": t0,
+	"END_TIME": t1
+}
+
+with open('video_data.json', 'w') as video_data_file:
+	json.dump(video_data, video_data_file)
+

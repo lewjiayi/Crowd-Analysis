@@ -5,14 +5,16 @@ SHOW_PROCESSING_OUTPUT = False
 # Show individuals detected
 SHOW_DETECT = True
 # Data presentation
-DATA_PRESENT = False
+DATA_PRESENT = True
+# Data record rate (data record per frame)
+DATA_RECORD_RATE = 3
 # Check for restricted entry
-RE_CHECK = False
+RE_CHECK = True
 # Restricted entry time
 RE_START_TIME = datetime.time(0,0,0) 
 RE_END_TIME = datetime.time(23,0,0)
 # Check for social distance violation
-SD_CHECK = False
+SD_CHECK = True
 # Threshold for distance violation
 SOCIAL_DISTANCE = 50
 # Threshold for human detection minumun confindence

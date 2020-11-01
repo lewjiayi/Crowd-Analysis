@@ -7,7 +7,7 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from deep_sort import generate_detections as gdet
 
-def detect_human (net, ln, frame, encoder, tracker, time):
+def detect_human (net, ln, frame, encoder, tracker, DATA_RECORD_FRAME, time):
 # Get the dimension of the frame
 	(frame_height, frame_width) = frame.shape[:2]
 	# Initialize lists needed for detection

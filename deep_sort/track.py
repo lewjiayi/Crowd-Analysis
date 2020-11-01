@@ -14,6 +14,7 @@ class TrackState:
     Tentative = 1
     Confirmed = 2
     Deleted = 3
+    Recorded = 4
 
 
 class Track:
@@ -63,8 +64,8 @@ class Track:
 
     """
 
-    def __init__(self, mean, covariance, track_id, entry, position, n_init, max_age,
-                 feature=None):
+    def __init__(self, mean, covariance, track_id, entry, position, n_init, 
+        max_age, feature=None):
         self.mean = mean
         self.covariance = covariance
         self.track_id = track_id
@@ -82,6 +83,7 @@ class Track:
 
         # Movement trails, recorded by centroids
         self.positions = [position]
+        self.last_seen = position
 
         # Initial detection
         self.entry = entry
@@ -158,7 +160,8 @@ class Track:
         if self.state == TrackState.Tentative:
             self.state = TrackState.Deleted
         elif self.time_since_update > self._max_age:
-            self.state = TrackState.Deleted
+            self.state = TrackState.Recorded
+            self.positions.append(self.last_seen)
 
     def is_tentative(self):
         """Returns True if this track is tentative (unconfirmed).
@@ -172,3 +175,7 @@ class Track:
     def is_deleted(self):
         """Returns True if this track is dead and should be deleted."""
         return self.state == TrackState.Deleted
+
+    def is_recorded(self):
+        """Returns True if this track is dead and should be recorded."""
+        return self.state == TrackState.Recorded
