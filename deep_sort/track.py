@@ -83,7 +83,6 @@ class Track:
 
         # Movement trails, recorded by centroids
         self.positions = [position]
-        self.last_seen = position
 
         # Initial detection
         self.entry = entry
@@ -161,7 +160,6 @@ class Track:
             self.state = TrackState.Deleted
         elif self.time_since_update > self._max_age:
             self.state = TrackState.Recorded
-            self.positions.append(self.last_seen)
 
     def is_tentative(self):
         """Returns True if this track is tentative (unconfirmed).

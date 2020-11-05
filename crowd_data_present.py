@@ -9,7 +9,7 @@ from math import floor
 human_count = []
 violate_count = []
 restricted_entry = []
-with open('crowd_data.csv', 'r') as file:
+with open('processed_data/crowd_data.csv', 'r') as file:
 	reader = csv.reader(file, delimiter=',')
 	next(reader)
 	for row in reader:
@@ -17,7 +17,7 @@ with open('crowd_data.csv', 'r') as file:
 		violate_count.append(int(row[2]))
 		restricted_entry.append(bool(row[3]))
 
-with open('video_data.json', 'r') as file:
+with open('processed_data/video_data.json', 'r') as file:
 	data = json.load(file)
 	frame_count = data["PROCESSED_FRAMES"]
 	data_record_frame = data["DATA_RECORD_FRAME"]
