@@ -8,7 +8,7 @@ import os.path as path
 import csv
 import json
 from video_process import video_process
-from config import DATA_PRESENT, YOLO_CONFIG, VIDEO_CONFIG, SHOW_PROCESSING_OUTPUT, DATA_RECORD_RATE
+from config import YOLO_CONFIG, VIDEO_CONFIG, SHOW_PROCESSING_OUTPUT, DATA_RECORD_RATE, FRAME_SIZE
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
@@ -56,7 +56,7 @@ crowd_data_writer = csv.writer(crowd_data_file)
 if path.getsize('processed_data/movement_data.csv') == 0:
 	movement_data_writer.writerow(['Track ID', 'Entry time', 'Exit Time', 'Movement Tracks'])
 if path.getsize('processed_data/crowd_data.csv') == 0:
-	crowd_data_writer.writerow(['Time', 'Human Count', 'Social Distance violate', 'Restricted Entry'])
+	crowd_data_writer.writerow(['Time', 'Human Count', 'Social Distance violate', 'Restricted Entry', 'Abnormal Activity'])
 
 VID_FPS = cap.get(cv2.CAP_PROP_FPS)
 DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
@@ -64,7 +64,7 @@ DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
 # Start counting time for processing speed calculation
 t0 = time.time()
 
-frame_count = video_process(cap, net, ln, encoder, tracker, movement_data_writer, crowd_data_writer)
+frame_count = video_process(cap, FRAME_SIZE, net, ln, encoder, tracker, movement_data_writer, crowd_data_writer)
 cap.release()
 cv2.destroyAllWindows()
 movement_data_file.close()
@@ -80,6 +80,8 @@ video_data = {
 	"IS_CAM": IS_CAM,
 	"PROCESSED_FRAMES": frame_count,
 	"DATA_RECORD_FRAME" : DATA_RECORD_FRAME,
+	"VID_FPS" : VID_FPS,
+	"PROCESSED_FRAME_SIZE": FRAME_SIZE,
 	"START_TIME": t0,
 	"END_TIME": t1
 }
