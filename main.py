@@ -58,27 +58,32 @@ if path.getsize('processed_data/movement_data.csv') == 0:
 if path.getsize('processed_data/crowd_data.csv') == 0:
 	crowd_data_writer.writerow(['Time', 'Human Count', 'Social Distance violate', 'Restricted Entry', 'Abnormal Activity'])
 
-VID_FPS = cap.get(cv2.CAP_PROP_FPS)
-DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
-
-# Start counting time for processing speed calculation
 t0 = time.time()
 
-frame_count = video_process(cap, FRAME_SIZE, net, ln, encoder, tracker, movement_data_writer, crowd_data_writer)
-cap.release()
+processing_FPS = video_process(cap, FRAME_SIZE, net, ln, encoder, tracker, movement_data_writer, crowd_data_writer)
 cv2.destroyAllWindows()
 movement_data_file.close()
 crowd_data_file.close()
 
-# Calculate and print system & processing data
 t1 = time.time() - t0
-print("Frame Count: ", frame_count)
+print()
 print("Time elapsed: ", t1)
-print("Processed FPS: ", frame_count/t1)
+if IS_CAM:
+	print("Processed FPS: ", processing_FPS)
+else:
+	print("Processed FPS: ", round(cap.get(cv2.CAP_PROP_FRAME_COUNT) / t1, 2))
+
+if IS_CAM:
+	VID_FPS = processing_FPS
+	DATA_RECORD_FRAME = 1
+else:
+	VID_FPS = cap.get(cv2.CAP_PROP_FPS)
+	DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
+
+cap.release()
 
 video_data = {
 	"IS_CAM": IS_CAM,
-	"PROCESSED_FRAMES": frame_count,
 	"DATA_RECORD_FRAME" : DATA_RECORD_FRAME,
 	"VID_FPS" : VID_FPS,
 	"PROCESSED_FRAME_SIZE": FRAME_SIZE,

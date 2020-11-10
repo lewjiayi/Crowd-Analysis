@@ -32,11 +32,13 @@ def rect_distance(rect1, rect2):
 		# Rect 1 & 2 intersects
 		return  0
 
-def progress(frame_count, vid_frame_length):
+def progress(frame_count):
 	import sys
-	progress = frame_count/vid_frame_length * 100
 	sys.stdout.write('\r')
-	sys.stdout.write("Processing  -  {:.2f}% ".format(progress, frame_count))
+	if frame_count % 2 == 0:
+		sys.stdout.write("Processing .. ")
+	else:
+		sys.stdout.write("Processing .  ")
 	sys.stdout.flush()
 
 def kinetic_energy(point1, point2, time_step):

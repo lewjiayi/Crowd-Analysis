@@ -1,6 +1,5 @@
 import csv
 import imutils
-import time
 import cv2
 import json
 import math
@@ -10,9 +9,6 @@ from itertools import zip_longest
 from math import ceil
 from scipy.spatial.distance import euclidean
 from colors import RGB_COLORS, gradient_color_RGB
-
-print("Loading tracks")
-t0 = time.time()
 
 tracks = []
 with open('processed_data/movement_data.csv', 'r') as file:
@@ -31,8 +27,8 @@ cap.set(1, 100)
 tracks_frame = imutils.resize(tracks_frame, width=720)
 heatmap_frame = np.copy(tracks_frame)
 
-color1 = RGB_COLORS["green"]
-color2 = RGB_COLORS["red"]
+color1 = (255, 96, 0)
+color2 = (0, 28, 255)
 for track in tracks:
     for i in range(len(track) - 1):
         color = gradient_color_RGB(color1, color2, len(track) - 1, i)
@@ -46,7 +42,6 @@ with open('processed_data/video_data.json', 'r') as file:
 
 stationary_threshold_seconds = 2
 stationary_threshold_frame =  round(vid_fps * stationary_threshold_seconds / data_record_frame)
-print(stationary_threshold_frame)
 stationary_distance = frame_size * 0.05
 
 stationary_points = []
@@ -89,7 +84,7 @@ for row in range(heatmap.shape[0]):
             heatmap_frame[row][col] = heatmap[row][col]
 
 cv2.imshow("Movement Tracks", tracks_frame)
-cv2.imshow("Heatmap", heatmap_frame)
+cv2.imshow("Stationary Location Heatmap", heatmap_frame)
 cv2.waitKey()
 cv2.destroyAllWindows()
 cap.release()

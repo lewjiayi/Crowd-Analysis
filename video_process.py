@@ -1,9 +1,11 @@
+import time
 import datetime
 import numpy as np
 import imutils
 import cv2
 import time
 from math import ceil
+from scipy.spatial.distance import euclidean
 from tracking import detect_human
 from util import rect_distance, progress, kinetic_energy
 from colors import RGB_COLORS
@@ -14,6 +16,7 @@ from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from deep_sort import generate_detections as gdet
 IS_CAM = VIDEO_CONFIG["IS_CAM"]
+HIGH_CAM = VIDEO_CONFIG["HIGH_CAM"]
 
 def _record_movement_data(movement_data_writer, movement):
 	track_id = movement.track_id 
@@ -37,10 +40,19 @@ def _end_video(tracker, frame_count, movement_data_writer):
 		
 
 def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writer, crowd_data_writer):
-	VID_FRAME_LENGTH = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-	VID_FPS = cap.get(cv2.CAP_PROP_FPS)
-	DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
-	TIME_STEP = DATA_RECORD_FRAME/VID_FPS
+	def _calculate_FPS():
+		t1 = time.time() - t0
+		VID_FPS = frame_count / t1
+
+	if IS_CAM:
+		VID_FPS = None
+		DATA_RECORD_FRAME = 1
+		TIME_STEP = 1
+		t0 = time.time()
+	else:
+		VID_FPS = cap.get(cv2.CAP_PROP_FPS)
+		DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
+		TIME_STEP = DATA_RECORD_FRAME/VID_FPS
 
 	frame_count = 0
 	display_frame_count = 0
@@ -57,10 +69,14 @@ def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writ
 		# Stop the loop when video ends
 		if not ret:
 			_end_video(tracker, frame_count, movement_data_writer)
+			if not VID_FPS:
+				_calculate_FPS()
 			break
 
 		# Update frame count
 		if frame_count > 1000000:
+			if not VID_FPS:
+				_calculate_FPS()
 			frame_count = 0
 			display_frame_count = 0
 		frame_count += 1
@@ -84,7 +100,7 @@ def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writ
 			record_time = frame_count
 		
 		# Run tracking algorithm
-		[humans_detected, expired] = detect_human(net, ln, frame, encoder, tracker, DATA_RECORD_FRAME, record_time)
+		[humans_detected, expired] = detect_human(net, ln, frame, encoder, tracker, record_time)
 		humans_detected = [list(map(int, detect)) for detect in humans_detected]
 
 		for movement in expired:
@@ -98,7 +114,11 @@ def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writ
 			if len(humans_detected) >= 2:
 				for i in range (0, len(humans_detected)):
 					for j in range (i + 1, len(humans_detected)):
-						if rect_distance(humans_detected[i][:4], humans_detected[j][:4]) < SOCIAL_DISTANCE:
+						if HIGH_CAM:
+							distance = euclidean(humans_detected[i][4], humans_detected[j][4])
+						else:
+							distance = rect_distance(humans_detected[i][:4], humans_detected[j][:4])
+						if distance < SOCIAL_DISTANCE:
 							# Distance between detection less than minimum social distance 
 							violate.add(i)
 							violate_count[i] += 1
@@ -191,10 +211,14 @@ def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writ
 
 		if SHOW_PROCESSING_OUTPUT:
 			cv2.imshow("Processed Output", frame)
+		else:
+			progress(display_frame_count)
 
-		if cv2.waitKey(1) & 0xFF == ord('q'):
+		if cv2.waitKey() & 0xFF == ord('q'):
 			_end_video(tracker, frame_count, movement_data_writer)
+			if not VID_FPS:
+				_calculate_FPS()
 			break
 	
 	cv2.destroyAllWindows()
-	return frame_count
+	return VID_FPS

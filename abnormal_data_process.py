@@ -50,7 +50,7 @@ x = { 'Energy': energies}
 df = pd.DataFrame(x)
 print(df.describe())
 print()
-print("Acceptable energy level (1.5x mean value) is " + str(int(df.Energy.mean() * 1.5)))
+print("Acceptable energy level (mean value ** 1.05) is " + str(int(df.Energy.mean() ** 1.05)))
 
 bins = np.linspace(int(min(energies)), int(max(energies)),100) 
 plt.xlim([min(energies)-5, max(energies)+5])
