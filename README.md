@@ -32,3 +32,7 @@ Current function implementation includes:
 
 **Video summary**
 ![Video Summary](assets/crowd%20data.png)
+
+## Files needed
+
+To run the code you will need to download the YOLO weights and cfg. Create a folder ```YOLOv4-tiny```, download the file [yolov4-tiny.weights](https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v4_pre/yolov4-tiny.weights) and [yolov4-tiny.cfg](https://github.com/AlexeyAB/darknet/blob/master/cfg/yolov4-tiny.cfg). You can also use YOLOv4 instead, just replace with the desired weights and cfg 
