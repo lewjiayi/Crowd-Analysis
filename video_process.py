@@ -101,29 +101,10 @@ def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writ
 		
 		# Run tracking algorithm
 		[humans_detected, expired] = detect_human(net, ln, frame, encoder, tracker, record_time)
-		humans_detected = [list(map(int, detect)) for detect in humans_detected]
 
+		# Record movement data
 		for movement in expired:
 			_record_movement_data(movement_data_writer, movement)
-
-		violate = set()
-		if SD_CHECK:
-			# Initialize set for violate so an individual will be recorded only once
-			violate_count = np.zeros(len(humans_detected))
-			# Check the distance between all combinations of detection
-			if len(humans_detected) >= 2:
-				for i in range (0, len(humans_detected)):
-					for j in range (i + 1, len(humans_detected)):
-						if HIGH_CAM:
-							distance = euclidean(humans_detected[i][4], humans_detected[j][4])
-						else:
-							distance = rect_distance(humans_detected[i][:4], humans_detected[j][:4])
-						if distance < SOCIAL_DISTANCE:
-							# Distance between detection less than minimum social distance 
-							violate.add(i)
-							violate_count[i] += 1
-							violate.add(j)
-							violate_count[j] += 1
 		
 		# Check for restricted entry
 		if RE_CHECK:
@@ -132,46 +113,81 @@ def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writ
 				if len(humans_detected) > 0:
 					RE = True
 			
-		if ABNORMAL_CHECK:
-			usable_tracks = 0
-			abnormal_tracks = 0
+		# Initiate video process loop
+		if SHOW_PROCESSING_OUTPUT or SHOW_DETECT or SD_CHECK or RE_CHECK or ABNORMAL_CHECK:
+			# Initialize set for violate so an individual will be recorded only once
+			violate_set = set()
+			# Initialize list to record violation count for each individual detected
+			violate_count = np.zeros(len(humans_detected))
+
+			# Initialize list to record id of individual with abnormal energy level
+			abnormal_individual = []
 			ABNORMAL = False
-			for track in tracker.tracks:
-				if track.time_since_update == 0 and track.is_confirmed():
-					usable_tracks += 1
+			for i, track in enumerate(humans_detected):
+				# Get object bounding box
+				[x, y, w, h] = list(map(int, track.to_tlbr().tolist()))
+				# Get object centroid
+				[cx, cy] = list(map(int, track.positions[-1]))
+				# Get object id
+				idx = track.track_id
+				# Check for social distance violation
+				if SD_CHECK:
+					if len(humans_detected) >= 2:
+						# Check the distance between current loop object with the rest of the object in the list
+						for j, track_2 in enumerate(humans_detected[i+1:], start=i+1):
+							if HIGH_CAM:
+								[cx_2, cy_2] = list(map(int, track_2.positions[-1]))
+								distance = euclidean((cx, cy), (cx_2, cy_2))
+							else:
+								[x_2, y_2, w_2, h_2] = list(map(int, track_2.to_tlbr().tolist()))
+								distance = rect_distance((x, y, w, h), (x_2, y_2, w_2, h_2))
+							if distance < SOCIAL_DISTANCE:
+								# Distance between detection less than minimum social distance 
+								violate_set.add(i)
+								violate_count[i] += 1
+								violate_set.add(j)
+								violate_count[j] += 1
+
+				# Compute energy level for each detection
+				if ABNORMAL_CHECK:
 					ke = kinetic_energy(track.positions[-1], track.positions[-2], TIME_STEP)
 					if ke > ABNORMAL_ENERGY:
-						abnormal_tracks += 1
-			if usable_tracks > ABNORMAL_MIN_PEOPLE:
-				if abnormal_tracks / usable_tracks > ABNORMAL_THRESH:
-					ABNORMAL = True
-		
-		if SHOW_PROCESSING_OUTPUT and (SHOW_DETECT or SD_CHECK or RE_CHECK):
-			for i, human in enumerate(humans_detected):
-				[x, y, w, h, cx, cy, id] = human
-				if i in violate:
+						abnormal_individual.append(track.track_id)
+
+				# If restrited entry is on, draw red boxes around each detection
+				if RE:
+					cv2.rectangle(frame, (x + 5 , y + 5 ), (w - 5, h - 5), RGB_COLORS["red"], 5)
+
+				# Draw yellow boxes for detection with social distance violation, green boxes for no violation
+				# Place a number of violation count on top of the box
+				if i in violate_set:
 					cv2.rectangle(frame, (x, y), (w, h), RGB_COLORS["yellow"], 2)
 					if SHOW_VIOLATION_COUNT:
 						cv2.putText(frame, str(int(violate_count[i])), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["yellow"], 2)
 				elif SHOW_DETECT and not RE:
-					cv2.rectangle(frame, (x , y), (w, h), RGB_COLORS["green"], 2)
+					cv2.rectangle(frame, (x, y), (w, h), RGB_COLORS["green"], 2)
 					if SHOW_VIOLATION_COUNT:
 						cv2.putText(frame, str(int(violate_count[i])), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["green"], 2)
-				if RE:
-					cv2.rectangle(frame, (x - 5 , y - 5 ), (w + 5, h + 5), RGB_COLORS["red"], 5)
+			
+			# Check for overall abnormal level, trigger notification if exceeds threshold
+			if len(humans_detected)  > ABNORMAL_MIN_PEOPLE:
+				if len(abnormal_individual) / len(humans_detected) > ABNORMAL_THRESH:
+					ABNORMAL = True
 
+		# Place violation count on frames
 		if SD_CHECK:
 			# Warning stays on screen for 10 frames
-			if (len(violate) > 0):
+			if (len(violate_set) > 0):
 				sd_warning_timeout = 10
 			else: 
 				sd_warning_timeout -= 1
 			# Display violation warning and count on screen
 			if sd_warning_timeout > 0:
-				text = "Violation count: {}".format(len(violate))
+				text = "Violation count: {}".format(len(violate_set))
 				cv2.putText(frame, text, (200, frame.shape[0] - 30),
 					cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
 
+		# Place restricted entry warning
 		if RE_CHECK:
 			# Warning stays on screen for 10 frames
 			if RE:
@@ -182,40 +198,52 @@ def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writ
 			if re_warning_timeout > 0:
 				if display_frame_count % 3 != 0 :
 					cv2.putText(frame, "RESTRICTED ENTRY", (200, 100),
-						cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+						cv2.FONT_HERSHEY_SIMPLEX, 1, RGB_COLORS["red"], 3)
 
+		# Place abnormal activity warning
 		if ABNORMAL_CHECK:
 			if ABNORMAL:
+				# Warning stays on screen for 10 frames
 				ab_warning_timeout = 10
+				# Draw blue boxes over the the abnormally behave detection if abnormal activity detected
+				for track in humans_detected:
+					if track.track_id in abnormal_individual:
+						[x, y, w, h] = list(map(int, track.to_tlbr().tolist()))
+						cv2.rectangle(frame, (x , y ), (w, h), RGB_COLORS["blue"], 5)
 			else:
 				ab_warning_timeout -= 1
 			if ab_warning_timeout > 0:
 				if display_frame_count % 3 != 0:
 					cv2.putText(frame, "ABNORMAL ACTIVITY", (130, 250),
-						cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 5)
+						cv2.FONT_HERSHEY_SIMPLEX, 1.5, RGB_COLORS["blue"], 5)
 
+		# Display crowd count on screen
 		if SHOW_DETECT:
-			# Display crowd count on screen
 			text = "Crowd count: {}".format(len(humans_detected))
 			cv2.putText(frame, text, (10, 30),
 				cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
 
-		current_date = str(current_datetime.strftime("%b-%d-%Y"))
-		current_time = str(current_datetime.strftime("%I:%M:%S %p"))
-		cv2.putText(frame, (current_date), (500, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 3)
-		cv2.putText(frame, (current_time), (500, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 3)
+		# Display current time on screen
+		# current_date = str(current_datetime.strftime("%b-%d-%Y"))
+		# current_time = str(current_datetime.strftime("%I:%M:%S %p"))
+		# cv2.putText(frame, (current_date), (500, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 3)
+		# cv2.putText(frame, (current_time), (500, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 3)
 		
-
+		# Record crowd data to file
 		if DATA_RECORD:
-			_record_crowd_data(record_time, len(humans_detected), len(violate), RE, ABNORMAL, crowd_data_writer)
+			_record_crowd_data(record_time, len(humans_detected), len(violate_set), RE, ABNORMAL, crowd_data_writer)
 
+		# Display video output or processing indicator
 		if SHOW_PROCESSING_OUTPUT:
 			cv2.imshow("Processed Output", frame)
 		else:
 			progress(display_frame_count)
 
+		# Press 'Q' to stop the video display
 		if cv2.waitKey() & 0xFF == ord('q'):
+			# Record the movement when video ends
 			_end_video(tracker, frame_count, movement_data_writer)
+			# Compute the processing speed
 			if not VID_FPS:
 				_calculate_FPS()
 			break
