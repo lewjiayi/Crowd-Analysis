@@ -58,27 +58,28 @@ if path.getsize('processed_data/movement_data.csv') == 0:
 if path.getsize('processed_data/crowd_data.csv') == 0:
 	crowd_data_writer.writerow(['Time', 'Human Count', 'Social Distance violate', 'Restricted Entry', 'Abnormal Activity'])
 
-t0 = time.time()
+START_TIME = time.time()
 
 processing_FPS = video_process(cap, FRAME_SIZE, net, ln, encoder, tracker, movement_data_writer, crowd_data_writer)
 cv2.destroyAllWindows()
 movement_data_file.close()
 crowd_data_file.close()
 
-t1 = time.time() - t0
+END_TIME = time.time() - START_TIME
 print()
-print("Time elapsed: ", t1)
+print("Time elapsed: ", END_TIME)
 if IS_CAM:
 	print("Processed FPS: ", processing_FPS)
-else:
-	print("Processed FPS: ", round(cap.get(cv2.CAP_PROP_FRAME_COUNT) / t1, 2))
-
-if IS_CAM:
 	VID_FPS = processing_FPS
 	DATA_RECORD_FRAME = 1
 else:
+	print("Processed FPS: ", round(cap.get(cv2.CAP_PROP_FRAME_COUNT) / END_TIME, 2))
 	VID_FPS = cap.get(cv2.CAP_PROP_FPS)
 	DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
+	START_TIME = VIDEO_CONFIG["START_TIME"]
+	time_elapsed = round(cap.get(cv2.CAP_PROP_FRAME_COUNT) / VID_FPS)
+	END_TIME = START_TIME + datetime.timedelta(seconds=time_elapsed)
+
 
 cap.release()
 
@@ -87,8 +88,8 @@ video_data = {
 	"DATA_RECORD_FRAME" : DATA_RECORD_FRAME,
 	"VID_FPS" : VID_FPS,
 	"PROCESSED_FRAME_SIZE": FRAME_SIZE,
-	"START_TIME": t0,
-	"END_TIME": t1
+	"START_TIME": START_TIME.strftime("%d/%m/%Y, %H:%M:%S"),
+	"END_TIME": END_TIME.strftime("%d/%m/%Y, %H:%M:%S")
 }
 
 with open('processed_data/video_data.json', 'w') as video_data_file:
