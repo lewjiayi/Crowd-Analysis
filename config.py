@@ -1,7 +1,7 @@
 import datetime
 
 # Show individuals detected
-SHOW_PROCESSING_OUTPUT = False
+SHOW_PROCESSING_OUTPUT = True
 # Show individuals detected
 SHOW_DETECT = True
 # Data record
@@ -24,7 +24,7 @@ ABNORMAL_CHECK = True
 # Min number of people to check for abnormal
 ABNORMAL_MIN_PEOPLE = 5
 # Abnormal energy level threshold
-ABNORMAL_ENERGY = 2470
+ABNORMAL_ENERGY = 500
 # Abnormal activity ratio threhold
 ABNORMAL_THRESH = 0.66
 # Threshold for human detection minumun confindence
@@ -38,7 +38,8 @@ FRAME_SIZE = 720
 VIDEO_CONFIG = {
 	"VIDEO_CAP" : "video/7.mp4",
 	"IS_CAM" : False,
-	"HIGH_CAM": False
+	"HIGH_CAM": False,
+	"START_TIME": datetime.datetime(2020, 11, 5, 0, 0, 0, 0)
 }
 
 # Load YOLOv3-tiny weights and config

@@ -27,6 +27,8 @@ with open('processed_data/video_data.json', 'r') as file:
 time_steps = data_record_frame/vid_fps
 stationary_distance = frame_size * 0.01
 
+print("Tracks recorded: " + str(len(tracks)))
+
 useful_tracks = []
 for movement in tracks:
 	stationary = movement[0]
@@ -44,10 +46,16 @@ for movement in useful_tracks:
         speed = round(euclidean(movement[i], movement[i+1]) / time_steps , 2)
         energies.append(int(0.5 * speed ** 2))
 
+c = len(energies)
+print("Useful movement data: " + str(c))
+
 energies = pd.Series(energies)
 energies = energies[abs(energies - np.mean(energies)) < 2 * np.std(energies)]
 x = { 'Energy': energies}
 df = pd.DataFrame(x)
+print("Outliers removed: " + str(c - df.Energy.count()))
+print()
+print("Summary of processed data")
 print(df.describe())
 print()
 print("Acceptable energy level (mean value ** 1.05) is " + str(int(df.Energy.mean() ** 1.05)))
