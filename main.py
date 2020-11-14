@@ -1,3 +1,12 @@
+from config import YOLO_CONFIG, VIDEO_CONFIG, SHOW_PROCESSING_OUTPUT, DATA_RECORD_RATE, FRAME_SIZE, TRACK_MAX_AGE
+
+if FRAME_SIZE > 1920:
+	print("Frame size is too large!")
+	quit()
+elif FRAME_SIZE < 480:
+	print("Frame size is too small! You won't see anything")
+	quit()
+
 import datetime
 import time
 import numpy as np
@@ -8,7 +17,6 @@ import os.path as path
 import csv
 import json
 from video_process import video_process
-from config import YOLO_CONFIG, VIDEO_CONFIG, SHOW_PROCESSING_OUTPUT, DATA_RECORD_RATE, FRAME_SIZE
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
@@ -41,7 +49,7 @@ nn_budget = None
 model_filename = 'model_data/mars-small128.pb'
 encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
-tracker = Tracker(metric)
+tracker = Tracker(metric, max_age=DATA_RECORD_RATE * TRACK_MAX_AGE)
 
 movement_data_file = open('processed_data/movement_data.csv', 'w') 
 crowd_data_file = open('processed_data/crowd_data.csv', 'w')
@@ -66,7 +74,6 @@ movement_data_file.close()
 crowd_data_file.close()
 
 END_TIME = time.time() - START_TIME
-print()
 print("Time elapsed: ", END_TIME)
 if IS_CAM:
 	print("Processed FPS: ", processing_FPS)
