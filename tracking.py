@@ -49,6 +49,7 @@ def detect_human (net, ln, frame, encoder, tracker, time):
 	idxs = cv2.dnn.NMSBoxes(boxes, confidences, MIN_CONF, NMS_THRESH)
 
 	tracked_bboxes = []
+	expired = []
 	if len(idxs) > 0:
 		del_idxs = []
 		for i in range(len(boxes)):
