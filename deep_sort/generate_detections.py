@@ -4,6 +4,8 @@ import errno
 import argparse
 import numpy as np
 import cv2
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow.compat.v1 as tf
     
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
