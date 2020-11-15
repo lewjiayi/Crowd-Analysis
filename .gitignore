@@ -134,6 +134,7 @@ video/
 # YOLO config and weights
 YOLOv3-tiny/
 YOLOv4-tiny/
+YOLOv4/
 
 # Processed data files
 movement_data.csv

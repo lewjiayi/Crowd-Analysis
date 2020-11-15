@@ -12,8 +12,7 @@ import time
 import numpy as np
 import imutils
 import cv2
-import time
-import os.path as path
+import os
 import csv
 import json
 from video_process import video_process
@@ -23,8 +22,8 @@ from deep_sort.tracker import Tracker
 from deep_sort import generate_detections as gdet
 
 # Read from video
-cap = cv2.VideoCapture(VIDEO_CONFIG["VIDEO_CAP"])
 IS_CAM = VIDEO_CONFIG["IS_CAM"]
+cap = cv2.VideoCapture(VIDEO_CONFIG["VIDEO_CAP"])
 
 # Load YOLOv3-tiny weights and config
 WEIGHTS_PATH = YOLO_CONFIG["WEIGHTS_PATH"]
@@ -46,10 +45,19 @@ max_cosine_distance = 0.7
 nn_budget = None
 
 #initialize deep sort object
+if IS_CAM: 
+	max_age = VIDEO_CONFIG["CAM_APPROX_FPS"] * TRACK_MAX_AGE
+else:
+	max_age=DATA_RECORD_RATE * TRACK_MAX_AGE
+	if max_age > 30:
+		max_age = 30
 model_filename = 'model_data/mars-small128.pb'
 encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
-tracker = Tracker(metric, max_age=DATA_RECORD_RATE * TRACK_MAX_AGE)
+tracker = Tracker(metric, max_age=max_age)
+
+if not os.path.exists('processed_data'):
+	os.makedirs('processed_data')
 
 movement_data_file = open('processed_data/movement_data.csv', 'w') 
 crowd_data_file = open('processed_data/crowd_data.csv', 'w')
@@ -61,9 +69,9 @@ crowd_data_writer = csv.writer(crowd_data_file)
 # sd_violate_writer = csv.writer(sd_violate_data_file)
 # restricted_entry_data_writer = csv.writer(restricted_entry_data_file)
 
-if path.getsize('processed_data/movement_data.csv') == 0:
+if os.path.getsize('processed_data/movement_data.csv') == 0:
 	movement_data_writer.writerow(['Track ID', 'Entry time', 'Exit Time', 'Movement Tracks'])
-if path.getsize('processed_data/crowd_data.csv') == 0:
+if os.path.getsize('processed_data/crowd_data.csv') == 0:
 	crowd_data_writer.writerow(['Time', 'Human Count', 'Social Distance violate', 'Restricted Entry', 'Abnormal Activity'])
 
 START_TIME = time.time()
@@ -73,14 +81,15 @@ cv2.destroyAllWindows()
 movement_data_file.close()
 crowd_data_file.close()
 
-END_TIME = time.time() - START_TIME
-print("Time elapsed: ", END_TIME)
+END_TIME = time.time()
+PROCESS_TIME = END_TIME - START_TIME
+print("Time elapsed: ", PROCESS_TIME)
 if IS_CAM:
 	print("Processed FPS: ", processing_FPS)
 	VID_FPS = processing_FPS
 	DATA_RECORD_FRAME = 1
 else:
-	print("Processed FPS: ", round(cap.get(cv2.CAP_PROP_FRAME_COUNT) / END_TIME, 2))
+	print("Processed FPS: ", round(cap.get(cv2.CAP_PROP_FRAME_COUNT) / PROCESS_TIME, 2))
 	VID_FPS = cap.get(cv2.CAP_PROP_FPS)
 	DATA_RECORD_FRAME = int(VID_FPS / DATA_RECORD_RATE)
 	START_TIME = VIDEO_CONFIG["START_TIME"]
@@ -95,6 +104,7 @@ video_data = {
 	"DATA_RECORD_FRAME" : DATA_RECORD_FRAME,
 	"VID_FPS" : VID_FPS,
 	"PROCESSED_FRAME_SIZE": FRAME_SIZE,
+	"TRACK_MAX_AGE": TRACK_MAX_AGE,
 	"START_TIME": START_TIME.strftime("%d/%m/%Y, %H:%M:%S"),
 	"END_TIME": END_TIME.strftime("%d/%m/%Y, %H:%M:%S")
 }

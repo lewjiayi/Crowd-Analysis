@@ -9,7 +9,7 @@ from scipy.spatial.distance import euclidean
 from tracking import detect_human
 from util import rect_distance, progress, kinetic_energy
 from colors import RGB_COLORS
-from config import SHOW_DETECT, DATA_RECORD, RE_CHECK, RE_START_TIME, RE_END_TIME, SD_CHECK, SHOW_VIOLATION_COUNT, SOCIAL_DISTANCE,\
+from config import SHOW_DETECT, DATA_RECORD, RE_CHECK, RE_START_TIME, RE_END_TIME, SD_CHECK, SHOW_VIOLATION_COUNT, SHOW_TRACKING_ID, SOCIAL_DISTANCE,\
 	SHOW_PROCESSING_OUTPUT, YOLO_CONFIG, VIDEO_CONFIG, DATA_RECORD_RATE, ABNORMAL_CHECK, ABNORMAL_ENERGY, ABNORMAL_THRESH, ABNORMAL_MIN_PEOPLE
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
@@ -168,6 +168,9 @@ def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writ
 					cv2.rectangle(frame, (x, y), (w, h), RGB_COLORS["green"], 2)
 					if SHOW_VIOLATION_COUNT:
 						cv2.putText(frame, str(int(violate_count[i])), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["green"], 2)
+				
+				if SHOW_TRACKING_ID:
+					cv2.putText(frame, str(int(idx)), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, RGB_COLORS["green"], 2)
 			
 			# Check for overall abnormal level, trigger notification if exceeds threshold
 			if len(humans_detected)  > ABNORMAL_MIN_PEOPLE:
@@ -240,7 +243,7 @@ def video_process(cap, frame_size, net, ln, encoder, tracker, movement_data_writ
 			progress(display_frame_count)
 
 		# Press 'Q' to stop the video display
-		if cv2.waitKey() & 0xFF == ord('q'):
+		if cv2.waitKey(1) & 0xFF == ord('q'):
 			# Record the movement when video ends
 			_end_video(tracker, frame_count, movement_data_writer)
 			# Compute the processing speed
