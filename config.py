@@ -1,5 +1,19 @@
 import datetime
 
+# Video Path
+VIDEO_CONFIG = {
+	"VIDEO_CAP" : "video/7.mp4",
+	"IS_CAM" : False,
+	"CAM_APPROX_FPS": 3,
+	"HIGH_CAM": False,
+	"START_TIME": datetime.datetime(2020, 11, 5, 0, 0, 0, 0)
+}
+
+# Load YOLOv3-tiny weights and config
+YOLO_CONFIG = {
+	"WEIGHTS_PATH" : "YOLOv4-tiny/yolov4-tiny.weights",
+	"CONFIG_PATH" : "YOLOv4-tiny/yolov4-tiny.cfg"
+}
 # Show individuals detected
 SHOW_PROCESSING_OUTPUT = True
 # Show individuals detected
@@ -37,18 +51,3 @@ NMS_THRESH = 0.2
 FRAME_SIZE = 1080
 # Tracker max missing age before removing (seconds)
 TRACK_MAX_AGE = 3
-
-# Video Path
-VIDEO_CONFIG = {
-	"VIDEO_CAP" : "video/7.mp4",
-	"IS_CAM" : False,
-	"CAM_APPROX_FPS": 3,
-	"HIGH_CAM": False,
-	"START_TIME": datetime.datetime(2020, 11, 5, 0, 0, 0, 0)
-}
-
-# Load YOLOv3-tiny weights and config
-YOLO_CONFIG = {
-	"WEIGHTS_PATH" : "YOLOv4-tiny/yolov4-tiny.weights",
-	"CONFIG_PATH" : "YOLOv4-tiny/yolov4-tiny.cfg"
-}
