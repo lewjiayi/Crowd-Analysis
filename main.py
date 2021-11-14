@@ -38,7 +38,7 @@ net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 # Get the names of all the layers in the network
 ln = net.getLayerNames()
 # Filter out the layer names we dont need for YOLO
-ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+ln = [ln[i - 1] for i in net.getUnconnectedOutLayers()]
 
 # Tracker parameters
 max_cosine_distance = 0.7
