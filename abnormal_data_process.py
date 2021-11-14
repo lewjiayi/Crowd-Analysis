@@ -8,7 +8,7 @@ import pandas as pd
 from math import ceil
 from scipy.spatial.distance import euclidean
 
-with open('processed_data_max_10/video_data.json', 'r') as file:
+with open('processed_data/video_data.json', 'r') as file:
     data = json.load(file)
     data_record_frame = data["DATA_RECORD_FRAME"]
     frame_size = data["PROCESSED_FRAME_SIZE"]
@@ -22,7 +22,7 @@ stationary_distance = frame_size * 0.01
 
 
 tracks = []
-with open('processed_data_max_10/movement_data.csv', 'r') as file:
+with open('processed_data/movement_data.csv', 'r') as file:
     reader = csv.reader(file, delimiter=',')
     for row in reader:
         if len(row[3:]) > stationary_time * 2:

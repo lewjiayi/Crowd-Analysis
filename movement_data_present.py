@@ -11,7 +11,7 @@ from scipy.spatial.distance import euclidean
 from colors import RGB_COLORS, gradient_color_RGB
 
 tracks = []
-with open('processed_data_5/movement_data.csv', 'r') as file:
+with open('processed_data/movement_data.csv', 'r') as file:
     reader = csv.reader(file, delimiter=',')
     for row in reader:
         if len(row[3:]) > 4:
@@ -21,7 +21,7 @@ with open('processed_data_5/movement_data.csv', 'r') as file:
                 temp.append([int(data[i]), int(data[i+1])])
             tracks.append(temp)
 
-with open('processed_data_5/video_data.json', 'r') as file:
+with open('processed_data/video_data.json', 'r') as file:
 	data = json.load(file)
 	vid_fps = data["VID_FPS"]
 	data_record_frame = data["DATA_RECORD_FRAME"]
