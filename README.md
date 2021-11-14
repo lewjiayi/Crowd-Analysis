@@ -62,22 +62,28 @@ python3 movement_data_present.py
 
 ## Sample Output
 
-**Optical flow of crowd movement**
+### Optical flow of crowd movement
+
 ![Optical flow](assets/optical%20flow.png)
 
-**Stationary location Heatmap**
+### Stationary location Heatmap
+
 ![Heatmap](assets/heatmap.png)
 
-**Detection & Tracking**
+### Detection & Tracking
+
 ![Detection & Tracking](assets/detection.png)
 
-**Social distance violation**
+### Social distance violation
+
 ![Social distance violation](assets/social%20distance.png)
 
-**Video summary**
+### Video summary
+
 ![Video Summary](assets/crowd%20data.png)
 
-**Enenrgy level over time graph**
+### Enenrgy level over time graph
+
 ![Energy graph](assets/energy%20graph.png)
 
 ## User Manual
