@@ -128,6 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# venv
+myenv/
+
 # Video files
 video/
 
@@ -137,6 +140,7 @@ YOLOv4-tiny/
 YOLOv4/
 
 # Processed data files
+processed_data/
 movement_data.csv
 crowd_data.csv
 video_data.json
