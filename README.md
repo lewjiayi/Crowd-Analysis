@@ -48,13 +48,15 @@ pip3 install requirements.txt
 
 ## Configuration
 
-`config.py` contains all configurations for this program. Place the **video source** under `VIDEO_CONFIG.VIDEO_CAP`
+`config.py` contains all configurations for this program.
+
+Place the **video source** under `VIDEO_CONFIG.VIDEO_CAP` in `config.py`
 
 Refer to [User Manual](#user-manual) on how to use the `config.py` file.
 
 ## Running
 
-To process a video, run `main.py`.
+To process a video, run `main.py`. Make sure you have input a valid **video source** under `VIDEO_CONFIG.VIDEO_CAP` in `config.py`
 
 ```shell
 python3 main.py
