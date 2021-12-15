@@ -56,7 +56,9 @@ Refer to [User Manual](#user-manual) on how to use the `config.py` file.
 
 ## Running
 
-To process a video, run `main.py`. Make sure you have input a valid **video source** under `VIDEO_CONFIG.VIDEO_CAP` in `config.py`
+Before you run the program, make sure you have input a valid **video source**. You have to provide your own video for the program. Replace the path at `VIDEO_CONFIG.VIDEO_CAP` in `config.py` with the path of your own video.
+
+To process a video, run `main.py`
 
 ```shell
 python3 main.py
